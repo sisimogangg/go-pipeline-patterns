@@ -5,24 +5,12 @@ import (
 	"sync"
 )
 
-/*
-Fan-out:
-Multiple functions can read from the same channel until that channel is closed
-
-Fan-in:
-A function can read from multiple inputs and proceed until all are closed by multiplexing [merging]
-the input channels onto a single channel that's closed when all the inputs are closed
-
-*/
-
 func gen(nums ...int) <-chan int {
-	out := make(chan int)
-	go func() {
-		for _, n := range nums {
-			out <- n
-		}
-		close(out)
-	}()
+	out := make(chan int, len(nums))
+	for _, n := range nums {
+		out <- n
+	}
+	close(out)
 	return out
 }
 
@@ -53,12 +41,18 @@ func main() {
 		//return
 		/* putting this here will cause resource leak because now merge(c1, c2)
 		   is stuck trying to send through the second number */
+
+		/*
+			We need to arrange for the upstream stages of our pipeline to exit even when
+			the downstream stages fail to receive all the inbound values.
+				* One way to do this is to change the outbound channels to have a buffer
+		*/
 	}
 }
 
 func merge(cs ...<-chan int) <-chan int {
 	var wg sync.WaitGroup
-	out := make(chan int)
+	out := make(chan int, 1)
 
 	// Start an output goroutine for each input channel in cs.  output
 	// copies values from c to out until c is closed, then calls wg.Done.
