@@ -28,7 +28,7 @@ func sq(ch <-chan int) <-chan int {
 
 func main() {
 
-	in := gen(4, 5)
+	in := gen(2, 3)
 	out := sq(in)
 
 	for n := range out {
